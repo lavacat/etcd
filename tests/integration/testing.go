@@ -15,6 +15,7 @@
 package integration
 
 import (
+	"github.com/stretchr/testify/require"
 	"os"
 	"path/filepath"
 	"testing"
@@ -27,6 +28,8 @@ import (
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zapgrpc"
 	"go.uber.org/zap/zaptest"
+
+	gofail "go.etcd.io/gofail/runtime"
 )
 
 var grpc_logger grpc_logsettable.SettableLoggerV2
@@ -39,6 +42,12 @@ func init() {
 type testOptions struct {
 	goLeakDetection bool
 	skipInShort     bool
+	failpoint       *failpoint
+}
+
+type failpoint struct {
+	name    string
+	payload string
 }
 
 func newTestOptions(opts ...TestOption) *testOptions {
@@ -60,6 +69,11 @@ func WithoutSkipInShort() TestOption {
 	return func(opt *testOptions) { opt.skipInShort = false }
 }
 
+// WithFailpoint registers a go fail point
+func WithFailpoint(name, payload string) TestOption {
+	return func(opt *testOptions) { opt.failpoint = &failpoint{name: name, payload: payload} }
+}
+
 // BeforeTestExternal initializes test context and is targeted for external APIs.
 // In general the `integration` package is not targeted to be used outside of
 // etcd project, but till the dedicated package is developed, this is
@@ -78,6 +92,16 @@ func BeforeTest(t testutil.TB, opts ...TestOption) {
 
 	if options.goLeakDetection {
 		testutil.RegisterLeakDetection(t)
+	}
+
+	if options.failpoint != nil && len(options.failpoint.name) != 0 {
+		if len(gofail.List()) == 0 {
+			t.Skip("please run 'make gofail-enable' before running the test")
+		}
+		require.NoError(t, gofail.Enable(options.failpoint.name, options.failpoint.payload))
+		t.Cleanup(func() {
+			require.NoError(t, gofail.Disable(options.failpoint.name))
+		})
 	}
 
 	previousWD, err := os.Getwd()

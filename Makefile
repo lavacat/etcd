@@ -565,3 +565,27 @@ pull-docker-functional:
 	$(info GO_VERSION: $(GO_VERSION))
 	$(info ETCD_VERSION: $(ETCD_VERSION))
 	docker pull gcr.io/etcd-development/etcd-functional:go$(GO_VERSION)
+
+# Failpoints
+
+GOFAIL_VERSION = $(shell cd tests && go list -m -f {{.Version}} go.etcd.io/gofail)
+
+.PHONY: gofail-enable
+gofail-enable: install-gofail
+	gofail enable server/etcdserver/ server/mvcc/ server/mvcc/backend server/wal/
+	cd ./server && go get go.etcd.io/gofail@${GOFAIL_VERSION}
+	cd ./etcdutl && go get go.etcd.io/gofail@${GOFAIL_VERSION}
+	cd ./etcdctl && go get go.etcd.io/gofail@${GOFAIL_VERSION}
+	cd ./tests && go get go.etcd.io/gofail@${GOFAIL_VERSION}
+
+.PHONY: gofail-disable
+gofail-disable: install-gofail
+	gofail disable server/etcdserver/ server/mvcc/ server/mvcc/backend server/wal/
+	cd ./server && go mod tidy
+	cd ./etcdutl && go mod tidy
+	cd ./etcdctl && go mod tidy
+	cd ./tests && go mod tidy
+
+.PHONY: install-gofail
+install-gofail:
+	cd tests; go install go.etcd.io/gofail@${GOFAIL_VERSION}

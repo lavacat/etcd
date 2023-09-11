@@ -36,6 +36,7 @@ require (
 	go.etcd.io/etcd/pkg/v3 v3.5.9
 	go.etcd.io/etcd/raft/v3 v3.5.9
 	go.etcd.io/etcd/server/v3 v3.5.9
+	go.etcd.io/gofail v0.1.0
 	go.uber.org/zap v1.17.0
 	golang.org/x/crypto v0.0.0-20220411220226-7b82a4e95df4
 	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4
